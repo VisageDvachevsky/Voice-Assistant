@@ -18,7 +18,9 @@ import win32gui
 import win32.lib.win32con as win32con
 import schedule
 import psutil
+import spacy
 
+nlp = spacy.load("ru_core_news_sm")
 
 def speak(text):
     engine = pyttsx3.init()
@@ -40,6 +42,24 @@ def Recognition():
         speak("i am dont uderstand, please repeat")
     except sr.RequestError as e:
         speak("no have internet connection")
+
+def analyze_intent(text):
+    """
+    Анализ интента команды пользователя с использованием SpaCy.
+
+    :param text: текст команды пользователя
+    :return: интент команды
+    """
+    doc = nlp(text)
+    print(text)
+    intent = None
+    for token in doc:
+        print(token)
+        # Пример простого анализа интента на основе глаголов в предложении
+        if token.pos_ == "VERB":
+            intent = token.lemma_
+            break
+    return intent
 
 def HelloWord(Username):
     """
@@ -72,9 +92,23 @@ def GetCommand(RecognitionData, UserName, command_name: str, *args: list):
     :param      args:             The arguments
     :type       args:             list
     """
-    for key in BotConfig.commands.keys():
-        if command_name in key:
-            BotConfig.commands[key](*args)
+    intent = analyze_intent(command_name)
+    print(intent)
+
+    if intent:
+        # Пример обработки интента "открыть браузер"
+        if intent == "открыть":
+            Bot.OpenBrowser()
+
+        # Пример обработки интента "напомнить"
+        elif intent == "напомнить":
+            Bot.reminder()
+
+        # Добавьте другие интенты и их обработку здесь
+        else:
+            speak("Я не понимаю эту команду")
+    else:
+        speak("Я не могу понять ваш запрос")
 
 def OpenBrowser(*args: tuple):
 
@@ -295,14 +329,10 @@ if __name__ == '__main__':
     while True:
         keyboard.wait("Ctrl + Shift")
         # call function
-        try:
-            ParseVoice = Recognition().lower().split()
-            command = ParseVoice[0]
-            commandOptions = [str(input_part)
-                              for input_part in ParseVoice[1:len(ParseVoice)]]
-            GetCommand(ParseVoice, Username, command, commandOptions)
-    
-        except:
-            pass
+        ParseVoice = Recognition().lower().split()
+        command = ParseVoice[0]
+        commandOptions = [str(input_part)
+                            for input_part in ParseVoice[1:len(ParseVoice)]]
+        GetCommand(ParseVoice, Username, command, commandOptions)
     while True:
         schedule.run_pending()
